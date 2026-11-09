@@ -1,4 +1,4 @@
-package talkinghand.transferspeedmultiplier;
+package talkinghand.actionspeedmultiplier;
 
 import zombie.SandboxOptions;
 
@@ -15,7 +15,7 @@ public final class Speed {
     private Speed() {}
 
     public static double multiplier() {
-        return SandboxOptions.instance.getOptionByName("TransferSpeedMultiplier.Multiplier") instanceof SandboxOptions.DoubleSandboxOption option
+        return SandboxOptions.instance.getOptionByName("ActionSpeedMultiplier.TransferSpeed") instanceof SandboxOptions.DoubleSandboxOption option
             ? option.getValue()
             : DEFAULT_MULTIPLIER;
     }

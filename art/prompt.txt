@@ -1,4 +1,4 @@
-Transfer Speed Multiplier — art concepts (_art/README.md template)
+Action Speed Multiplier (formerly Transfer Speed Multiplier) — art concepts (_art/README.md template)
 Attach for all: _art/refs/character_sheet.webp + _art/refs/style_doubleclick.png + _art/refs/chalk_zombie_sheet.png
 Subject: moving items between containers fast. The speed has to read at 256 px, so the items are in the air
 in one clear arc, with hand-drawn motion lines (comic speed lines are allowed, glowing effects are not).

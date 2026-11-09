@@ -1,5 +1,0 @@
-{
-    "Sandbox_TransferSpeedMultiplier": "Transfer Speed Multiplier",
-    "Sandbox_TransferSpeedMultiplier_Multiplier": "Item transfer speed",
-    "Sandbox_TransferSpeedMultiplier_Multiplier_tooltip": "Moving items between containers takes the vanilla time divided by this. 2 is twice as fast, 1 is vanilla, 0.5 is twice as slow."
-}

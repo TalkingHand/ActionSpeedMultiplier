@@ -1,0 +1,12 @@
+name=Action Speed Multiplier
+id=ActionSpeedMultiplier
+poster=poster.png
+description=Divides the time of timed actions (twice as fast by default) and of item transfers (20 times as fast by default) by two sandbox options, in single player and on servers. Item transfers on servers are patched in Java. Requires ZombieBuddy.
+author=TalkingHand
+url=https://github.com/TalkingHand/ActionSpeedMultiplier
+modversion=1.0.0
+versionMin=42.21
+require=\ZombieBuddy
+incompatible=TwisTonFireFasterActions
+javaJarFile=media/java/ActionSpeedMultiplier.jar
+javaPkgName=talkinghand.actionspeedmultiplier

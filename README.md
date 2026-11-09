@@ -1,14 +1,21 @@
-# Transfer Speed Multiplier
+# Action Speed Multiplier
 
-Project Zomboid Build 42 mod. Moving items between containers takes the vanilla time divided by a sandbox option, in single player and on multiplayer servers.
+Project Zomboid Build 42 mod. Timed actions and item transfers take the vanilla time divided by two sandbox options, in single player and on multiplayer servers. Meant as a replacement for Lua-only "faster actions" mods, which cannot speed up item transfers on servers.
 
-## Why Java
+## Sandbox options
 
-In multiplayer the server times every transfer itself (`zombie.core.Transaction.getDuration`) and the client waits for the server's time, so a Lua mod cannot change it. Lua-only "faster actions" mods can only send several items in one request, which does nothing for single items or the floor. This mod patches the server's timing with ZombieBuddy, and wraps `ISInventoryTransferAction:new` for single player, where no server timing exists.
+| Option | Range | Default | Applies to |
+|---|---|---|---|
+| **Action speed** (`ActionSpeedMultiplier.ActionSpeed`) | 0.1 - 100 | 2 | every timed action except item transfers: crafting, building, eating, reading, repairing, farming, animals... |
+| **Item transfer speed** (`ActionSpeedMultiplier.TransferSpeed`) | 0.1 - 100 | 20 | moving items between containers, bags, vehicles and the floor, and picking items up from the ground |
 
-## Sandbox option
+The time is the vanilla time divided by the option: 2 is twice as fast, 1 is vanilla, 0.5 twice as slow. Vanilla modifiers (traits, moodles, wounded hands, gloves, weight, bag fullness) still count before the division.
 
-**Item transfer speed** (`TransferSpeedMultiplier.Multiplier`), 0.1 to 100, default 20. The time is the vanilla time divided by it: 2 is twice as fast, 1 is vanilla, 0.5 twice as slow. Traits (Dextrous, All Thumbs), gloves, weight and bag fullness still count as in vanilla.
+## How
+
+- **Actions:** every timed action's time goes through `ISBaseTimedAction:adjustMaxTime`, on the client and in single player (`create`) and on the server (`NetTimedAction.getDuration` calls `adjustMaxTime(getDuration())`). The mod divides there, so client and server agree. Actions that do part of their work on their own clock (`timePerLiter`, `timePerEgg`, `timePerDirt`, `timePerUse`: milking, shearing, eggs, cleaning hutches, watering) get those clocks divided too.
+- **Item transfers on servers:** the server times them in Java (`zombie.core.Transaction.getDuration`) and the client only waits, so Lua cannot change them. The mod patches that method with ZombieBuddy.
+- **Item transfers in single player:** `ISInventoryTransferAction:new` and `ISGrabItemAction:new` are wrapped.
 
 ## Requirements
 
@@ -19,17 +26,18 @@ In multiplayer the server times every transfer itself (`zombie.core.Transaction.
 ## Install
 
 - Steam Workshop: link added after the first upload.
-- Manual: copy `Contents/mods/TransferSpeedMultiplier` to `%USERPROFILE%\Zomboid\mods\`.
+- Manual: copy `Contents/mods/ActionSpeedMultiplier` to `%USERPROFILE%\Zomboid\mods\`.
 
 ## Compatibility
 
 - Build 42.21. Tested in single player; multiplayer is not tested.
-- Mods that also scale transfer time stack with it. TwisTonFire Faster Actions, for example, divides single-player times by its own speed and batches multiplayer transfers; with both on, the effects multiply.
+- Marked incompatible with TwisTonFire Faster Actions: both divide action times, so together they would multiply.
+- Other mods' timed actions are divided too when they go through `adjustMaxTime` (the normal way). An action that runs its own clock under another field name than `timePer...` may end before its work is done.
 - Can be added to or removed from an existing save; it changes no saved data.
 
 ## Test
 
-`pzt live` (PZTestHarness) runs `tests/TransferSpeedMultiplier_Test.lua` in single player: the Lua times, the patched server duration (`Transaction.getDuration` called directly), and two real timed transfers.
+`pzt live` (PZTestHarness) runs `tests/ActionSpeedMultiplier_Test.lua` in single player: transfer and grab times, the patched server transfer duration (`Transaction.getDuration` called directly), `adjustMaxTime` for actions and their own clocks, and real timed runs of a transfer and of an action.
 
 ## Support
 

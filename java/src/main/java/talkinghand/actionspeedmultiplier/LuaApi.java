@@ -1,4 +1,4 @@
-package talkinghand.transferspeedmultiplier;
+package talkinghand.actionspeedmultiplier;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -12,8 +12,8 @@ import zombie.inventory.ItemContainer;
 import zombie.iso.IsoDirections;
 import zombie.network.packets.ItemTransactionPacket;
 
-/** Lua table TransferSpeedMultiplier, for the console and tests. */
-@Exposer.LuaClass(name = "TransferSpeedMultiplier")
+/** Lua table ActionSpeedMultiplier, for the console and tests. */
+@Exposer.LuaClass(name = "ActionSpeedMultiplier")
 public class LuaApi {
     public static double multiplier() {
         return Speed.multiplier();
@@ -39,7 +39,7 @@ public class LuaApi {
             m.setAccessible(true);
             return ((Float) m.invoke(t)).doubleValue();
         } catch (ReflectiveOperationException | RuntimeException e) {
-            System.out.println("[TransferSpeedMultiplier] serverDuration failed: " + e);
+            System.out.println("[ActionSpeedMultiplier] serverDuration failed: " + e);
             return -1.0;
         } finally {
             Speed.bypass = was;

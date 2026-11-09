@@ -1,21 +1,31 @@
-# TransferSpeedMultiplier: vanilla dependencies (format: _guide/README.md "9. 게임 업데이트 대응")
-# checked: 42.21.0 (pzt live 2026-11-10, single player 27 PASS incl. default 20; multiplayer not tested)
+# ActionSpeedMultiplier: vanilla dependencies (format: _guide/README.md "9. 게임 업데이트 대응")
+# checked: 42.21.0 (pzt 2026-11-10 run 030417, single player 44 PASS; multiplayer not tested)
 #
-# Java: java/src/main/java/talkinghand/transferspeedmultiplier (Patches.java, Speed.java, LuaApi.java).
+# Java: java/src/main/java/talkinghand/actionspeedmultiplier (Patches.java, Speed.java, LuaApi.java).
 #
 # Riskiest (break silently):
-#  1. Multiplayer: the server must keep timing transfers with Transaction.getDuration (via setTimeData); a new timing path would be vanilla speed again
-#  2. Single player: ISInventoryTransferAction.new must keep setting maxTime and copying it into queueList[1].time before returning
+#  1. Actions: every timed action's time must keep going through ISBaseTimedAction:adjustMaxTime (create on the client, NetTimedAction.getDuration on the server)
+#  2. Multiplayer transfers: the server must keep timing them with Transaction.getDuration; a new timing path would be vanilla speed again
+#  3. Single-player transfers: ISInventoryTransferAction.new must keep setting maxTime and queueList[1].time; ISGrabItemAction.new must keep taking time as its third argument
+#  4. Actions with their own clocks must keep naming them timePer*
 #
 # kind	target	note
 
-java-patch	zombie.core.Transaction.getDuration()	private, returns ms (vanilla maxTime * 20, longest entry); OnExit divides by the multiplier. 0 (lightweight bulk, same-container) stays 0
-assume	The server calls getDuration only to set endTime (Transaction constructor on the server, setTimeData on accept) and sends endTime - startTime to the client	ItemTransactionPacket.processServer, write; TransactionManager.update completes at endTime
-assume	The MP client takes the server's duration (getItemTransactionDuration) instead of its own maxTime	client/TimedActions/ISInventoryTransferAction.lua:168 (maxTime -1 in new, :854)
+java-patch	zombie.core.Transaction.getDuration()	private, returns ms (vanilla maxTime * 20, longest entry); OnExit divides by TransferSpeed. 0 (lightweight bulk, same-container) stays 0
+assume	The server calls Transaction.getDuration only to set endTime (constructor on the server, setTimeData on accept) and sends endTime - startTime to the client	ItemTransactionPacket.processServer, write; TransactionManager.update completes at endTime
+assume	The MP client takes the server's transfer duration (getItemTransactionDuration) instead of its own maxTime	client/TimedActions/ISInventoryTransferAction.lua:168 (maxTime -1 in new, :854), ISGrabItemAction.lua:41 (-1 in new, :197)
 java-call	ItemTransactionPacket(), Transaction.set(IsoPlayer, List, ItemContainer, ItemContainer, String, IsoDirections, float, float, float)	LuaApi.serverDuration (tests only)
 java-call	SandboxOptions.instance.getOptionByName, DoubleSandboxOption.getValue	Speed.multiplier; falls back to 20.0 if the option is missing
-lua-wrap	ISInventoryTransferAction:new	client/TimedActions/ISInventoryTransferAction.lua:764; calls the original, then divides maxTime (skips MP clients, 0 and 1); installed at file load
-lua-file	TimedActions/ISInventoryTransferAction	required before wrapping
-assume	checkQueueList copies each merged action's maxTime into queueList entries	ISInventoryTransferAction.lua:739; merged actions were built by the wrapped new, so they are already scaled
-assume	maxTime 0 means instant (favourites, TradeUI), 1 means the debug "timed action instant"	ISInventoryTransferAction.lua:840-850; left alone
-sandbox	TransferSpeedMultiplier.Multiplier	own option, double 0.1-100, default 20.0; Lua reads SandboxVars, Java reads SandboxOptions
+lua-wrap	ISBaseTimedAction:adjustMaxTime	shared/TimedActions/ISBaseTimedAction.lua:99; calls the original, divides results > 1 by ActionSpeed (not below 1), skips ISInventoryTransferAction and ISGrabItemAction by Type; installed at file load (shared, also on the server). No vanilla subclass overrides it (42.21)
+assume	The server times NetTimedActions as adjustMaxTime(getDuration()) * 20	zombie.core.NetTimedAction.getDuration / getAdjustedDuration (GameServer only)
+assume	ISEquipWeaponAction, ISUnequipAction, ISAttachItemHotbar, ISDetachItemHotbar compute animSpeed = maxTime / adjustMaxTime(maxTime)	so their animations play ActionSpeed times faster, matching the shorter time
+lua-wrap	ISWashClothing:getDuration	shared/TimedActions/ISWashClothing.lua:215 returns adjustMaxTime(maxTime) and create adjusts again (vanilla adjusts twice); the wrapper keeps the inner call undivided. Installed at file load and OnGameStart/OnServerStarted
+assume	Actions doing work on their own clock name it timePer* (timePerUse, timePerLiter, timePerEgg, timePerDirt) and set it in new, before adjustMaxTime	ISAddWaterToTrough, ISGatherBloodFromAnimal, ISGiveWaterToAnimal, ISHutchCleanFloor, ISHutchCleanNest, ISHutchGrabEgg, ISMilkAnimal, ISShearAnimal; divided once per action object
+assume	ISReadABook reads pages by jobDelta, not by its own clock	shared/TimedActions/ISReadABook.lua:28; pageTimer (200) only times the "can't learn" message
+lua-wrap	ISInventoryTransferAction:new	client/TimedActions/ISInventoryTransferAction.lua:764; calls the original, then divides maxTime by TransferSpeed (skips MP clients, 0 and 1)
+lua-wrap	ISGrabItemAction:new	client/TimedActions/ISGrabItemAction.lua:182; divides the time argument before the original, because new copies it into a queue entry (checkQueueList, possibly an earlier grab's queue)
+lua-file	TimedActions/ISBaseTimedAction, TimedActions/ISInventoryTransferAction, TimedActions/ISGrabItemAction, TimedActions/ISWashClothing	required before wrapping
+assume	checkQueueList copies each merged transfer action's maxTime into queueList entries	ISInventoryTransferAction.lua:739; merged actions were built by the wrapped new, so they are already divided
+assume	maxTime 0 means instant (favourites, TradeUI), 1 means the debug "timed action instant", -1 means endless/server-timed	left alone
+sandbox	ActionSpeedMultiplier.ActionSpeed	own option, double 0.1-100, default 2.0; Lua reads SandboxVars
+sandbox	ActionSpeedMultiplier.TransferSpeed	own option, double 0.1-100, default 20.0; Lua reads SandboxVars, Java reads SandboxOptions

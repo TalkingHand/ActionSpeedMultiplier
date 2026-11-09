@@ -1,0 +1,7 @@
+{
+    "Sandbox_ActionSpeedMultiplier": "Action Speed Multiplier",
+    "Sandbox_ActionSpeedMultiplier_ActionSpeed": "행동 속도",
+    "Sandbox_ActionSpeedMultiplier_ActionSpeed_tooltip": "제작, 건설, 먹기, 독서, 수리 같은 행동 시간을 바닐라 시간 ÷ 이 값으로 바꿉니다. 2는 두 배 빠르게, 1은 바닐라, 0.5는 두 배 느리게. 아이템 이동은 아래 옵션을 따릅니다.",
+    "Sandbox_ActionSpeedMultiplier_TransferSpeed": "아이템 이동 속도",
+    "Sandbox_ActionSpeedMultiplier_TransferSpeed_tooltip": "아이템을 컨테이너에 넣고 빼거나 바닥에서 줍는 시간을 바닐라 시간 ÷ 이 값으로 바꿉니다. 20은 20배 빠르게, 1은 바닐라."
+}
