@@ -6,7 +6,7 @@ Project Zomboid Build 42 mod. Timed actions and item transfers take the vanilla 
 
 | Option | Range | Default | Applies to |
 |---|---|---|---|
-| **Action speed** (`ActionSpeedMultiplier.ActionSpeed`) | 0.1 - 100 | 2 | every timed action except item transfers: crafting, building, eating, reading, repairing, farming, animals... |
+| **Action speed** (`ActionSpeedMultiplier.ActionSpeed`) | 0.1 - 100 | 20 | every timed action except item transfers: crafting, building, eating, reading, repairing, farming, animals... |
 | **Item transfer speed** (`ActionSpeedMultiplier.TransferSpeed`) | 0.1 - 100 | 20 | moving items between containers, bags, vehicles and the floor, and picking items up from the ground |
 
 The time is the vanilla time divided by the option: 2 is twice as fast, 1 is vanilla, 0.5 twice as slow. Vanilla modifiers (traits, moodles, wounded hands, gloves, weight, bag fullness) still count before the division.

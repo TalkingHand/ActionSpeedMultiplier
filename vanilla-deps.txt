@@ -1,5 +1,5 @@
 # ActionSpeedMultiplier: vanilla dependencies (format: _guide/README.md "9. 게임 업데이트 대응")
-# checked: 42.21.0 (pzt 2026-11-10 run 030417, single player 44 PASS; multiplayer not tested)
+# checked: 42.21.0 (pzt 2026-11-10 run 030417, single player 44 PASS with ActionSpeed default 2; default 20 not rerun; multiplayer not tested)
 #
 # Java: java/src/main/java/talkinghand/actionspeedmultiplier (Patches.java, Speed.java, LuaApi.java).
 #
@@ -27,5 +27,5 @@ lua-wrap	ISGrabItemAction:new	client/TimedActions/ISGrabItemAction.lua:182; divi
 lua-file	TimedActions/ISBaseTimedAction, TimedActions/ISInventoryTransferAction, TimedActions/ISGrabItemAction, TimedActions/ISWashClothing	required before wrapping
 assume	checkQueueList copies each merged transfer action's maxTime into queueList entries	ISInventoryTransferAction.lua:739; merged actions were built by the wrapped new, so they are already divided
 assume	maxTime 0 means instant (favourites, TradeUI), 1 means the debug "timed action instant", -1 means endless/server-timed	left alone
-sandbox	ActionSpeedMultiplier.ActionSpeed	own option, double 0.1-100, default 2.0; Lua reads SandboxVars
+sandbox	ActionSpeedMultiplier.ActionSpeed	own option, double 0.1-100, default 20.0; Lua reads SandboxVars
 sandbox	ActionSpeedMultiplier.TransferSpeed	own option, double 0.1-100, default 20.0; Lua reads SandboxVars, Java reads SandboxOptions

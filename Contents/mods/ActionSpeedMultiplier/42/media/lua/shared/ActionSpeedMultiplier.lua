@@ -10,7 +10,7 @@
 
 require "TimedActions/ISBaseTimedAction"
 
-local DEFAULT_ACTION = 2.0
+local DEFAULT_ACTION = 20.0
 
 local TRANSFER_TYPES = {
 	ISInventoryTransferAction = true,

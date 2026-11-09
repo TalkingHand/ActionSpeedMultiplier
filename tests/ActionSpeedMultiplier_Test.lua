@@ -54,7 +54,7 @@ function T.basics()
 		near("default transfer multiplier 20", ActionSpeedMultiplier.multiplier(), 20.0)
 	end
 	if ActionSpeedMultiplierLua then
-		near("default action multiplier 2", ActionSpeedMultiplierLua.actionMultiplier(), 2.0)
+		near("default action multiplier 20", ActionSpeedMultiplierLua.actionMultiplier(), 20.0)
 	end
 	check("ISWashClothing getDuration wrapped", ISWashClothing ~= nil and ISWashClothing._ASM_wrapped == true)
 	check("single player (Lua side active)", not isClient())
@@ -192,7 +192,7 @@ function T.actionTimes()
 	clocked:adjustMaxTime(100)
 	near("own clock divided only once", clocked.timePerLiter, 10)
 	check("other fields untouched", clocked.timer == 0)
-	setActionMultiplier(2)
+	setActionMultiplier(20)
 	setMultiplier(20)
 end
 
@@ -242,7 +242,7 @@ function T.actionCompare()
 	else
 		check("both timed test actions finished", false)
 	end
-	setActionMultiplier(2)
+	setActionMultiplier(20)
 end
 
 function T.summary()
