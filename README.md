@@ -25,7 +25,7 @@ The time is the vanilla time divided by the option: 2 is twice as fast, 1 is van
 
 ## Install
 
-- Steam Workshop: link added after the first upload.
+- [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3836872290) (subscribe, then enable ZombieBuddy and Action Speed Multiplier)
 - Manual: copy `Contents/mods/ActionSpeedMultiplier` to `%USERPROFILE%\Zomboid\mods\`.
 
 ## Compatibility
