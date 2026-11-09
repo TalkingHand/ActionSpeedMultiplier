@@ -1,0 +1,6 @@
+pzt-env/
+build/
+Thumbs.db
+.DS_Store
+*.bak
+*.log

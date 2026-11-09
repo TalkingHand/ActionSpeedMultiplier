@@ -1,0 +1,5 @@
+{
+    "Sandbox_TransferSpeedMultiplier": "Transfer Speed Multiplier",
+    "Sandbox_TransferSpeedMultiplier_Multiplier": "아이템 이동 속도",
+    "Sandbox_TransferSpeedMultiplier_Multiplier_tooltip": "아이템을 넣고 빼는 시간을 바닐라 시간 ÷ 이 값으로 바꿉니다. 2는 두 배 빠르게, 1은 바닐라, 0.5는 두 배 느리게."
+}

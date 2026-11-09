@@ -1,0 +1,21 @@
+# TransferSpeedMultiplier: vanilla dependencies (format: _guide/README.md "9. 게임 업데이트 대응")
+# checked: 42.21.0 (pzt live 2026-11-10, single player 27 PASS incl. default 20; multiplayer not tested)
+#
+# Java: java/src/main/java/talkinghand/transferspeedmultiplier (Patches.java, Speed.java, LuaApi.java).
+#
+# Riskiest (break silently):
+#  1. Multiplayer: the server must keep timing transfers with Transaction.getDuration (via setTimeData); a new timing path would be vanilla speed again
+#  2. Single player: ISInventoryTransferAction.new must keep setting maxTime and copying it into queueList[1].time before returning
+#
+# kind	target	note
+
+java-patch	zombie.core.Transaction.getDuration()	private, returns ms (vanilla maxTime * 20, longest entry); OnExit divides by the multiplier. 0 (lightweight bulk, same-container) stays 0
+assume	The server calls getDuration only to set endTime (Transaction constructor on the server, setTimeData on accept) and sends endTime - startTime to the client	ItemTransactionPacket.processServer, write; TransactionManager.update completes at endTime
+assume	The MP client takes the server's duration (getItemTransactionDuration) instead of its own maxTime	client/TimedActions/ISInventoryTransferAction.lua:168 (maxTime -1 in new, :854)
+java-call	ItemTransactionPacket(), Transaction.set(IsoPlayer, List, ItemContainer, ItemContainer, String, IsoDirections, float, float, float)	LuaApi.serverDuration (tests only)
+java-call	SandboxOptions.instance.getOptionByName, DoubleSandboxOption.getValue	Speed.multiplier; falls back to 20.0 if the option is missing
+lua-wrap	ISInventoryTransferAction:new	client/TimedActions/ISInventoryTransferAction.lua:764; calls the original, then divides maxTime (skips MP clients, 0 and 1); installed at file load
+lua-file	TimedActions/ISInventoryTransferAction	required before wrapping
+assume	checkQueueList copies each merged action's maxTime into queueList entries	ISInventoryTransferAction.lua:739; merged actions were built by the wrapped new, so they are already scaled
+assume	maxTime 0 means instant (favourites, TradeUI), 1 means the debug "timed action instant"	ISInventoryTransferAction.lua:840-850; left alone
+sandbox	TransferSpeedMultiplier.Multiplier	own option, double 0.1-100, default 20.0; Lua reads SandboxVars, Java reads SandboxOptions

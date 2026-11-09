@@ -1,0 +1,18 @@
+Transfer Speed Multiplier — art concepts (_art/README.md template)
+Attach for all: _art/refs/character_sheet.webp + _art/refs/style_doubleclick.png + _art/refs/chalk_zombie_sheet.png
+Subject: moving items between containers fast. The speed has to read at 256 px, so the items are in the air
+in one clear arc, with hand-drawn motion lines (comic speed lines are allowed, glowing effects are not).
+
+==================================================================
+A "Looting against the clock" (user generated two, picked the 2nd, 11-10)
+==================================================================
+Use the attached character sheet for the character's identity and the attached preview image for art style.
+
+Character (keep exactly): early-30s male survivor, short scruffy brown beard, messy brown hair, faded gray headband, red-and-black buffalo plaid flannel with rolled sleeves over dark gray T-shirt, olive work pants, brown work boots.
+Style: bold black ink outlines, gritty comic style, muted desaturated palette, red accent. Square 1:1 composition, readable at small thumbnail size. No text, no letters, no numbers, no onomatopoeia anywhere.
+
+Scene: A ransacked kitchen. The survivor crouches in front of an open lower kitchen cabinet on the LEFT and, with fast blurred hands, flings its contents in one smooth arc into an open hiking backpack on the floor on the RIGHT. In the air along the arc, evenly spaced, from cabinet to backpack: a can of beans, a water bottle, a box of matches, a roll of bandage, a can opener, a chocolate bar. Bold hand-drawn comic motion lines follow the arc and trail behind his hands (two or three ghosted hand outlines show the speed). The last item is just dropping into the backpack. His face is focused and quick, tongue slightly out, not scared.
+Background, far right, small: the kitchen door is held shut by a chair under the handle, and two gray zombie hands reach through a crack at the top of the door. This explains the hurry; it stays small and does not compete with the arc.
+The man and the arc of items are the largest elements and fill the middle of the picture.
+
+Small in the lower-left corner: the chalk zombie from the attached chalk sheet (white chalk stick figure, X eyes, jagged teeth), drawn as chalk on the side of the cabinet door, shocked, arms raised and mouth open, watching the items fly. No chalk drawing anywhere else in the picture.

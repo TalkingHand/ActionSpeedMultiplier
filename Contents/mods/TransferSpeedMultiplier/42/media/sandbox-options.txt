@@ -1,0 +1,11 @@
+VERSION = 1,
+
+option TransferSpeedMultiplier.Multiplier
+{
+    type = double,
+    default = 20.0,
+    min = 0.1,
+    max = 100.0,
+    page = TransferSpeedMultiplier,
+    translation = TransferSpeedMultiplier_Multiplier,
+}
