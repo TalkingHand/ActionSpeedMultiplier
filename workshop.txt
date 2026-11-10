@@ -34,5 +34,7 @@ description=특성, 무들, 손 부상, 장갑, 무게, 가방이 찬 정도는 
 description=필요한 것: [b]ZombieBuddy[/b] 모드, 스팀 실행 옵션 [b]-agentlib:zbNative --[/b] (속성 → 실행 옵션). 싱글에서 테스트했고 멀티는 테스트하지 않았습니다. 멀티에서는 서버(ZombieBuddy Java 에이전트 포함)와 모든 클라이언트에 ZombieBuddy와 이 모드가 필요합니다. Faster Actions를 대체하는 모드라 같이 쓸 수 없게 표시했습니다.
 description=
 description=Source: https://github.com/TalkingHand/ActionSpeedMultiplier
+description=
+description=[url=https://ko-fi.com/talkinghands2285][img]https://raw.githubusercontent.com/TalkingHand/ActionSpeedMultiplier/main/art/kofi_button.png[/img][/url]
 tags=Build 42;Balance;Items
 visibility=public
