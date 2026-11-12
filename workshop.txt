@@ -1,6 +1,6 @@
 version=1
 id=3836872290
-title=Action Speed Multiplier
+title=[42.22.2] Action Speed Multiplier
 description=[h1]Action Speed Multiplier[/h1]
 description=Faster actions and much faster item transfers, in single player and on servers. Two sandbox options divide the vanilla time: actions and item transfers 20 times as fast by default.
 description=
@@ -11,6 +11,7 @@ description=[h2]Sandbox options[/h2]
 description=[list]
 description=[*][b]Action speed[/b], 0.1 to 100, default 20: crafting, building, eating, reading, repairing, farming, animals and every other timed action except moving items.
 description=[*][b]Item transfer speed[/b], 0.1 to 100, default 20: moving items between containers, bags, vehicles and the floor, and picking items up from the ground.
+description=[*][b]Items moved per step[/b], default 20 (0 or 1 = item by item), single player: several items move this many at a time. A step takes its items' times added up, so the total stays the vanilla time divided by the transfer speed, just without the pause between items.
 description=[/list]
 description=The time is the vanilla time divided by the option: 2 is twice as fast, 1 is vanilla, 0.5 is twice as slow. Traits, moodles, wounded hands, gloves, weight and bag fullness still count as in vanilla, before the division. Set them when you start a new game, or in the server's sandbox settings.
 description=
@@ -28,7 +29,7 @@ description=Can be added to or removed from an existing save; an existing save s
 description=
 description=[h2]한국어[/h2]
 description=행동 시간과 아이템 이동 시간을 샌드박스 옵션 두 개로 나눕니다. 기본값은 행동과 아이템 이동 모두 20배 빠르게입니다(각각 0.1~100, 1은 바닐라).
-description=[b]행동 속도[/b]: 제작, 건설, 먹기, 독서, 수리, 농사, 동물 등 아이템 이동을 뺀 모든 행동. [b]아이템 이동 속도[/b]: 컨테이너, 가방, 차량, 바닥 사이 이동과 바닥에서 줍기.
+description=[b]행동 속도[/b]: 제작, 건설, 먹기, 독서, 수리, 농사, 동물 등 아이템 이동을 뺀 모든 행동. [b]아이템 이동 속도[/b]: 컨테이너, 가방, 차량, 바닥 사이 이동과 바닥에서 줍기. [b]한 번에 옮길 개수[/b](싱글플레이, 기본 20, 0·1은 하나씩): 여러 아이템을 이 개수씩 묶어 옮깁니다. 전체 시간은 그대로이고 아이템 사이의 끊김만 없어집니다.
 description=멀티에서는 서버가 아이템 이동 시간을 정하고 클라이언트는 기다리기만 해서 Lua 모드로는 바꿀 수 없습니다. 이 모드는 서버의 이동 시간 계산 자체를 Java로 고쳐서(ZombieBuddy) 한 개, 여러 개, 바닥까지 모두 빨라집니다.
 description=특성, 무들, 손 부상, 장갑, 무게, 가방이 찬 정도는 바닐라대로 계산한 뒤 나눕니다.
 description=필요한 것: [b]ZombieBuddy[/b] 모드, 스팀 실행 옵션 [b]-agentlib:zbNative --[/b] (속성 → 실행 옵션). 싱글에서 테스트했고 멀티는 테스트하지 않았습니다. 멀티에서는 서버(ZombieBuddy Java 에이전트 포함)와 모든 클라이언트에 ZombieBuddy와 이 모드가 필요합니다. Faster Actions를 대체하는 모드라 같이 쓸 수 없게 표시했습니다.

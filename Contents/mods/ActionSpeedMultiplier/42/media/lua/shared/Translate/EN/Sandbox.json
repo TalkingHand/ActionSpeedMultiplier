@@ -3,5 +3,7 @@
     "Sandbox_ActionSpeedMultiplier_ActionSpeed": "Action speed",
     "Sandbox_ActionSpeedMultiplier_ActionSpeed_tooltip": "Timed actions (crafting, building, eating, reading, repairing...) take the vanilla time divided by this. 2 is twice as fast, 1 is vanilla, 0.5 is twice as slow. Moving items uses the option below instead.",
     "Sandbox_ActionSpeedMultiplier_TransferSpeed": "Item transfer speed",
-    "Sandbox_ActionSpeedMultiplier_TransferSpeed_tooltip": "Moving items between containers, and picking items up from the ground, takes the vanilla time divided by this. 20 is twenty times as fast, 1 is vanilla."
+    "Sandbox_ActionSpeedMultiplier_TransferSpeed_tooltip": "Moving items between containers, and picking items up from the ground, takes the vanilla time divided by this. 20 is twenty times as fast, 1 is vanilla.",
+    "Sandbox_ActionSpeedMultiplier_BulkTransferSize": "Items moved per step",
+    "Sandbox_ActionSpeedMultiplier_BulkTransferSize_tooltip": "Several items going from one container to another (or picked up from the ground) move this many at a time. Each step takes as long as its items together, so the total stays the vanilla time divided by the transfer speed, without the pause between items. 100 items at 20: 5 steps of 20. 0 or 1 is vanilla (item by item). Single player only."
 }

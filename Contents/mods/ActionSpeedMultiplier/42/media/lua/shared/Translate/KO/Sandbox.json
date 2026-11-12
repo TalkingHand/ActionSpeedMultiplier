@@ -3,5 +3,7 @@
     "Sandbox_ActionSpeedMultiplier_ActionSpeed": "행동 속도",
     "Sandbox_ActionSpeedMultiplier_ActionSpeed_tooltip": "제작, 건설, 먹기, 독서, 수리 같은 행동 시간을 바닐라 시간 ÷ 이 값으로 바꿉니다. 2는 두 배 빠르게, 1은 바닐라, 0.5는 두 배 느리게. 아이템 이동은 아래 옵션을 따릅니다.",
     "Sandbox_ActionSpeedMultiplier_TransferSpeed": "아이템 이동 속도",
-    "Sandbox_ActionSpeedMultiplier_TransferSpeed_tooltip": "아이템을 컨테이너에 넣고 빼거나 바닥에서 줍는 시간을 바닐라 시간 ÷ 이 값으로 바꿉니다. 20은 20배 빠르게, 1은 바닐라."
+    "Sandbox_ActionSpeedMultiplier_TransferSpeed_tooltip": "아이템을 컨테이너에 넣고 빼거나 바닥에서 줍는 시간을 바닐라 시간 ÷ 이 값으로 바꿉니다. 20은 20배 빠르게, 1은 바닐라.",
+    "Sandbox_ActionSpeedMultiplier_BulkTransferSize": "한 번에 옮길 개수",
+    "Sandbox_ActionSpeedMultiplier_BulkTransferSize_tooltip": "같은 컨테이너 사이로 옮기거나 바닥에서 줍는 아이템을 이 개수씩 묶어 한 번에 옮깁니다. 한 묶음은 묶인 아이템들의 시간을 합친 만큼 걸려서, 전체 시간은 바닐라 시간 ÷ 이동 속도 그대로이고 아이템 사이의 끊김만 없어집니다. 100개를 20으로 두면 20개씩 5번. 0이나 1은 바닐라(하나씩). 싱글플레이 전용."
 }

@@ -1,5 +1,5 @@
 # ActionSpeedMultiplier: vanilla dependencies (format: _guide/README.md "9. 게임 업데이트 대응")
-# checked: 42.21.0 (pzt 2026-11-10 run 030417, single player 44 PASS with ActionSpeed default 2; default 20 not rerun; multiplayer not tested)
+# checked: 42.22.2 (pzt 2026-11-12 single client, 74 PASS)
 #
 # Java: java/src/main/java/talkinghand/actionspeedmultiplier (Patches.java, Speed.java, LuaApi.java).
 #
@@ -24,6 +24,14 @@ assume	Actions doing work on their own clock name it timePer* (timePerUse, timeP
 assume	ISReadABook reads pages by jobDelta, not by its own clock	shared/TimedActions/ISReadABook.lua:28; pageTimer (200) only times the "can't learn" message
 lua-wrap	ISInventoryTransferAction:new	client/TimedActions/ISInventoryTransferAction.lua:764; calls the original, then divides maxTime by TransferSpeed (skips MP clients, 0 and 1)
 lua-wrap	ISGrabItemAction:new	client/TimedActions/ISGrabItemAction.lua:182; divides the time argument before the original, because new copies it into a queue entry (checkQueueList, possibly an earlier grab's queue)
+lua-wrap	ISInventoryTransferAction:update	client/TimedActions/ISInventoryTransferAction.lua:129; single player, BulkTransferSize > 1: calls checkQueueList (vanilla calls it only in perform), regroups the queue, then the original
+lua-wrap	ISGrabItemAction:update	client/TimedActions/ISGrabItemAction.lua:30; single player: regroups the queue, then the original
+assume	queueList entries are {items = {...}, time, type} and perform takes queueList[1], transfers all its items (isValid per item, clears the list on the first failure), then times queueList[2]	ISInventoryTransferAction.lua:487-530, ISGrabItemAction.lua:69-110; regrouping = batches of BulkTransferSize items, time = sum of item times (an entry of vanilla-bundled light items splits its one time among them); batch type "ActionSpeedMultiplier.Batch" so vanilla never adds light items to it
+assume	checkQueueList adds light items only to an entry whose type equals the item's full type	ISInventoryTransferAction.lua:727, ISGrabItemAction.lua:168
+assume	checkQueueList may be called more than once and only merges mergeable actions after self in the timed action queue	ISInventoryTransferAction.lua:712 (MP calls it in start and perform)
+assume	The game keeps an action's time as an int (BaseAction.maxTime, LuaTimedActionNew.setTime(int)): a fractional maxTime runs truncated	so item by item a 4.8-tick item runs as 4; batches add exact times (kept per item before the 1-tick floor) and lose under 1 tick per batch
+assume	action:setTime during update changes the remaining time without resetting progress	vanilla does it in update for MP (getItemTransactionDuration)
+sandbox	ActionSpeedMultiplier.BulkTransferSize	own option, integer 0-1000, default 20, 0/1 = vanilla; single player only (MP transactions stay vanilla: up to 20 light items each)
 lua-file	TimedActions/ISBaseTimedAction, TimedActions/ISInventoryTransferAction, TimedActions/ISGrabItemAction, TimedActions/ISWashClothing	required before wrapping
 assume	checkQueueList copies each merged transfer action's maxTime into queueList entries	ISInventoryTransferAction.lua:739; merged actions were built by the wrapped new, so they are already divided
 assume	maxTime 0 means instant (favourites, TradeUI), 1 means the debug "timed action instant", -1 means endless/server-timed	left alone
