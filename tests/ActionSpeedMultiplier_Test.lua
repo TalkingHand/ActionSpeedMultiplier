@@ -492,6 +492,152 @@ function T.mixCompare()
 	setBulk(20)
 end
 
+-- Multiplayer batches, checked in single player by calling the pieces directly (no server here):
+-- foldQueueMP (client side: regroup the -1-timed queue, first batch cut to what fits) and the Java
+-- batch sum (server side: a transaction of several items takes their times added up, light bundles once).
+local function freshItems(key, fullType, n, container)
+	T[key] = T[key] or {}
+	for i, it in ipairs(T[key]) do
+		if it:getContainer() then it:getContainer():Remove(it) end
+		T[key][i] = nil
+	end
+	for i = 1, n do T[key][i] = container:AddItem(fullType) end
+	return T[key]
+end
+
+local function clearItems(key)
+	for i, it in ipairs(T[key] or {}) do
+		if it:getContainer() then it:getContainer():Remove(it) end
+	end
+	T[key] = {}
+end
+
+-- an empty schoolbag of its own, so earlier tests' items don't fill it
+local function mpSetup()
+	local player, inv = setup()
+	if T.mpBag and T.mpBag:getContainer() then T.mpBag:getContainer():Remove(T.mpBag) end
+	T.mpBag = inv:AddItem("Base.Bag_Schoolbag")
+	return player, inv, T.mpBag:getInventory()
+end
+
+local function mpCleanup()
+	if T.mpBag and T.mpBag:getContainer() then T.mpBag:getContainer():Remove(T.mpBag) end
+	T.mpBag = nil
+end
+
+local function mpAction(player, items, src, dest, perEntry)
+	local list = {}
+	local k = 1
+	while k <= #items do
+		local e = { items = {}, time = -1, type = items[k]:getFullType() }
+		for j = k, math.min(k + (perEntry or 1) - 1, #items) do e.items[#e.items + 1] = items[j] end
+		list[#list + 1] = e
+		k = k + (perEntry or 1)
+	end
+	return { queueList = list, character = player, srcContainer = src, destContainer = dest }
+end
+
+function T.mpFold()
+	local L = ActionSpeedMultiplierLua
+	check("foldQueueMP exposed", L ~= nil and L.foldQueueMP ~= nil and L.roomForBatch ~= nil)
+	if not (L and L.foldQueueMP) then return end
+	local player, inv, bagInv = mpSetup()
+	setBulk(20)
+	-- 30 apples, one entry each: batches of 20 and 10 (an empty schoolbag holds 20 apples)
+	local apples = freshItems("mpApples", "Base.Apple", 30, inv)
+	local a = mpAction(player, apples, inv, bagInv)
+	check("30 apples folded", L.foldQueueMP(a) == true)
+	check("30 apples: 2 batches 20 + 10", #a.queueList == 2 and #a.queueList[1].items == 20 and #a.queueList[2].items == 10,
+		#a.queueList .. " " .. #a.queueList[1].items)
+	check("batch times stay -1 (server-timed)", a.queueList[1].time == -1 and a.queueList[2].time == -1)
+	check("batch type is the mod's", a.queueList[1].type == "ActionSpeedMultiplier.Batch")
+	check("order kept", a.queueList[1].items[1] == apples[1] and a.queueList[2].items[10] == apples[30])
+	check("second fold: unchanged", L.foldQueueMP(a) == false)
+	-- vanilla bundles (one entry, several items) are flattened too
+	local b = mpAction(player, apples, inv, bagInv, 15)
+	L.foldQueueMP(b)
+	check("2 entries of 15 -> 20 + 10", #b.queueList == 2 and #b.queueList[1].items == 20, #b.queueList)
+	clearItems("mpApples")
+	-- heavy items: the first batch stops where the bag would be full
+	local planks = freshItems("mpPlanks", "Base.Plank", 12, inv)
+	local c = mpAction(player, planks, inv, bagInv)
+	L.foldQueueMP(c)
+	local first = #c.queueList[1].items
+	local w = 0
+	for _, it in ipairs(c.queueList[1].items) do w = w + it:getUnequippedWeight() end
+	local cap = bagInv:getEffectiveCapacity(player)
+	local used = bagInv:getCapacityWeight()
+	local plankW = planks[1]:getUnequippedWeight()
+	log("12 planks into the schoolbag: first batch", first, "weight", w, "bag used", used, "capacity", cap)
+	check("first batch fits the bag", first == 1 or used + w <= cap, used + w .. " <= " .. cap)
+	check("first batch is as big as fits", first == 12 or used + w + plankW > cap or not bagInv:hasRoomFor(player, w + plankW),
+		"first=" .. first)
+	check("first batch smaller than 12", first < 12, first)
+	local total = 0
+	for _, e in ipairs(c.queueList) do total = total + #e.items end
+	check("no plank lost", total == 12, total)
+	clearItems("mpPlanks")
+	-- not the multiplayer form (times not -1), size 1, a single item: left alone
+	local d = { queueList = { { items = { "x" }, time = 5, type = "t" }, { items = { "y" }, time = 5, type = "t" } } }
+	check("SP-timed entries left alone", L.foldQueueMP(d) == false and #d.queueList == 2)
+	setBulk(1)
+	local e = mpAction(player, freshItems("mpApples", "Base.Apple", 5, inv), inv, bagInv)
+	check("size 1: vanilla", L.foldQueueMP(e) == false and #e.queueList == 5)
+	clearItems("mpApples")
+	mpCleanup()
+	setBulk(20)
+end
+
+function T.mpServerTimes()
+	if not (ActionSpeedMultiplier and ActionSpeedMultiplier.serverDurationList) then
+		check("Java serverDurationList", false)
+		return
+	end
+	local player, inv, bagInv = mpSetup()
+	setBulk(20)
+	setMultiplier(2)
+	local function list(items)
+		local l = ArrayList.new()
+		for _, it in ipairs(items) do l:add(it) end
+		return l
+	end
+	local planks = freshItems("mpPlanks", "Base.Plank", 5, inv)
+	local one = ActionSpeedMultiplier.serverDurationList(player, list({ planks[1] }), inv, bagInv, 1)
+	local vmax = ActionSpeedMultiplier.serverDurationList(player, list(planks), inv, bagInv, 1)
+	local before = ActionSpeedMultiplier.batched()
+	local sum = ActionSpeedMultiplier.serverDurationList(player, list(planks), inv, bagInv, 2)
+	local patched = ActionSpeedMultiplier.serverDurationList(player, list(planks), inv, bagInv, 0)
+	log("5 planks server ms: one", one, "vanilla (slowest)", vmax, "sum", sum, "patched", patched)
+	check("one plank > 0", one > 0, one)
+	near("vanilla takes the slowest (= one plank)", vmax, one)
+	near("batch sum = 5 planks", sum, 5 * one)
+	near("patched = sum / 2", patched, 5 * one / 2)
+	check("batch counter ran", ActionSpeedMultiplier.batched() > before)
+	-- 25 nails (light, one type): vanilla bundles 20 into one item's time, so 2 items' time
+	local nails = freshItems("mpNails", "Base.Nails", 25, inv)
+	local nail = ActionSpeedMultiplier.serverDurationList(player, list({ nails[1] }), inv, bagInv, 1)
+	local nsum = ActionSpeedMultiplier.serverDurationList(player, list(nails), inv, bagInv, 2)
+	log("25 nails server ms: one", nail, "sum", nsum, "nail weight", nails[1]:getWeight())
+	near("25 nails = 2 bundles", nsum, 2 * nail)
+	-- mixed: 5 planks + 20 nails = 5 planks + 1 nail
+	local mixed = {}
+	for _, p in ipairs(planks) do mixed[#mixed + 1] = p end
+	for i = 1, 20 do mixed[#mixed + 1] = nails[i] end
+	local msum = ActionSpeedMultiplier.serverDurationList(player, list(mixed), inv, bagInv, 2)
+	near("5 planks + 20 nails = 5 planks + 1 nail", msum, 5 * one + nail)
+	-- size 1: vanilla rule (slowest), divided
+	setBulk(1)
+	local off = ActionSpeedMultiplier.serverDurationList(player, list(planks), inv, bagInv, 0)
+	near("size 1: slowest / 2 (vanilla rule)", off, one / 2)
+	setBulk(20)
+	-- the single-item path is unchanged
+	near("single item patched = one / 2", ActionSpeedMultiplier.serverDurationList(player, list({ planks[1] }), inv, bagInv, 0), one / 2)
+	clearItems("mpPlanks")
+	clearItems("mpNails")
+	mpCleanup()
+	setMultiplier(20)
+end
+
 function T.summary()
 	log("summary pass", T.pass, "fail", T.fail)
 end

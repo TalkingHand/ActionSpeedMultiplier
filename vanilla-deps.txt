@@ -1,17 +1,22 @@
 # ActionSpeedMultiplier: vanilla dependencies (format: _guide/README.md "9. 게임 업데이트 대응")
-# checked: 42.22.2 (pzt 2026-11-12 single client, 74 PASS)
+# checked: 42.22.2 (1.2.0: pzt 2026-11-15 single player, one client, 97 PASS incl. mpFold and mpServerTimes; multiplayer batches on a real server not tested)
 #
 # Java: java/src/main/java/talkinghand/actionspeedmultiplier (Patches.java, Speed.java, LuaApi.java).
 #
 # Riskiest (break silently):
 #  1. Actions: every timed action's time must keep going through ISBaseTimedAction:adjustMaxTime (create on the client, NetTimedAction.getDuration on the server)
 #  2. Multiplayer transfers: the server must keep timing them with Transaction.getDuration; a new timing path would be vanilla speed again
+#  2b. Multiplayer batches: the client must keep sending one transaction per queueList[1] right after checkQueueList (start, perform); Transaction must keep the fields entries/player and TransactionEntry.itemId/sourceId (reflection; batches fall back to the slowest item if they go)
 #  3. Single-player transfers: ISInventoryTransferAction.new must keep setting maxTime and queueList[1].time; ISGrabItemAction.new must keep taking time as its third argument
 #  4. Actions with their own clocks must keep naming them timePer*
 #
 # kind	target	note
 
-java-patch	zombie.core.Transaction.getDuration()	private, returns ms (vanilla maxTime * 20, longest entry); OnExit divides by TransferSpeed. 0 (lightweight bulk, same-container) stays 0
+java-patch	zombie.core.Transaction.getDuration()	private, returns ms (vanilla maxTime * 20, longest entry); OnExit (@Patch.This Object) divides by TransferSpeed. 0 (lightweight bulk, same-container) stays 0. Several entries and BulkTransferSize > 1: Speed.batchSum re-times each entry alone (reflective call, the patch skips nested calls) and adds them up; light items (round(getWeight,3) <= 0.1) of one full type count once per 20
+java-call	Transaction.entries, Transaction.player (protected), Transaction$TransactionEntry.itemId/sourceId, Transaction.getDuration (private)	Speed.batchSum by reflection; on failure it logs once and keeps vanilla (slowest item)
+java-call	TransactionManager.getLightweightData, LightweightData.lastItemFullType/itemsCount/itemsLastTransactionTime, ConnectionPlayer.getPlayer, ContainerID.getContainer/getObject, ItemContainer.getItemWithID, IsoWorldInventoryObject.getItem	Speed.batchSum: per-entry calls start from a neutral light-item state, the state is restored after
+assume	getDuration changes nothing but LightweightData (itemsCount, lastItemFullType) for floor items <= 0.1 with itemId -1	so calling it again per entry is safe once that state is saved and restored
+assume	The server checks room (isConsistent) for each entry of a transaction alone, not for the entries together	ItemTransactionPacket.processServer, TransactionManager.isConsistent (destinationWeightInTransaction counts other transactions only); so the client cuts a batch to what fits
 assume	The server calls Transaction.getDuration only to set endTime (constructor on the server, setTimeData on accept) and sends endTime - startTime to the client	ItemTransactionPacket.processServer, write; TransactionManager.update completes at endTime
 assume	The MP client takes the server's transfer duration (getItemTransactionDuration) instead of its own maxTime	client/TimedActions/ISInventoryTransferAction.lua:168 (maxTime -1 in new, :854), ISGrabItemAction.lua:41 (-1 in new, :197)
 java-call	ItemTransactionPacket(), Transaction.set(IsoPlayer, List, ItemContainer, ItemContainer, String, IsoDirections, float, float, float)	LuaApi.serverDuration (tests only)
@@ -24,6 +29,8 @@ assume	Actions doing work on their own clock name it timePer* (timePerUse, timeP
 assume	ISReadABook reads pages by jobDelta, not by its own clock	shared/TimedActions/ISReadABook.lua:28; pageTimer (200) only times the "can't learn" message
 lua-wrap	ISInventoryTransferAction:new	client/TimedActions/ISInventoryTransferAction.lua:764; calls the original, then divides maxTime by TransferSpeed (skips MP clients, 0 and 1)
 lua-wrap	ISGrabItemAction:new	client/TimedActions/ISGrabItemAction.lua:182; divides the time argument before the original, because new copies it into a queue entry (checkQueueList, possibly an earlier grab's queue)
+lua-wrap	ISInventoryTransferAction:checkQueueList	client/TimedActions/ISInventoryTransferAction.lua:712; multiplayer only (isClient): calls the original, then regroups queueList into batches of BulkTransferSize (times stay -1), the first batch cut where the destination would be full (hasRoomFor(chr, weight), getEffectiveCapacity vs getCapacityWeight, floor: square total vs capacity) or over ItemNumbersLimitPerContainer
+assume	In multiplayer start and perform call checkQueueList and then createItemTransaction(character, queueList[1].items, src, dest); waitToStart delays start 10 ms so items queued in one frame are merged first	ISInventoryTransferAction.lua:249, :306-313, :507-526; merged MP actions have maxTime -1 (:850)
 lua-wrap	ISInventoryTransferAction:update	client/TimedActions/ISInventoryTransferAction.lua:129; single player, BulkTransferSize > 1: calls checkQueueList (vanilla calls it only in perform), regroups the queue, then the original
 lua-wrap	ISGrabItemAction:update	client/TimedActions/ISGrabItemAction.lua:30; single player: regroups the queue, then the original
 assume	queueList entries are {items = {...}, time, type} and perform takes queueList[1], transfers all its items (isValid per item, clears the list on the first failure), then times queueList[2]	ISInventoryTransferAction.lua:487-530, ISGrabItemAction.lua:69-110; regrouping = batches of BulkTransferSize items, time = sum of item times (an entry of vanilla-bundled light items splits its one time among them); batch type "ActionSpeedMultiplier.Batch" so vanilla never adds light items to it
@@ -31,7 +38,7 @@ assume	checkQueueList adds light items only to an entry whose type equals the it
 assume	checkQueueList may be called more than once and only merges mergeable actions after self in the timed action queue	ISInventoryTransferAction.lua:712 (MP calls it in start and perform)
 assume	The game keeps an action's time as an int (BaseAction.maxTime, LuaTimedActionNew.setTime(int)): a fractional maxTime runs truncated	so item by item a 4.8-tick item runs as 4; batches add exact times (kept per item before the 1-tick floor) and lose under 1 tick per batch
 assume	action:setTime during update changes the remaining time without resetting progress	vanilla does it in update for MP (getItemTransactionDuration)
-sandbox	ActionSpeedMultiplier.BulkTransferSize	own option, integer 0-1000, default 20, 0/1 = vanilla; single player only (MP transactions stay vanilla: up to 20 light items each)
+sandbox	ActionSpeedMultiplier.BulkTransferSize	own option, integer 0-1000, default 20, 0/1 = vanilla; single player (Lua times) and multiplayer (client regroups, server Java sums). Java reads SandboxOptions (IntegerSandboxOption)
 lua-file	TimedActions/ISBaseTimedAction, TimedActions/ISInventoryTransferAction, TimedActions/ISGrabItemAction, TimedActions/ISWashClothing	required before wrapping
 assume	checkQueueList copies each merged transfer action's maxTime into queueList entries	ISInventoryTransferAction.lua:739; merged actions were built by the wrapped new, so they are already divided
 assume	maxTime 0 means instant (favourites, TradeUI), 1 means the debug "timed action instant", -1 means endless/server-timed	left alone

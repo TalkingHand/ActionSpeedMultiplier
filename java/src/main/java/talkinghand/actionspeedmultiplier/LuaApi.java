@@ -27,14 +27,41 @@ public class LuaApi {
      * The duration (ms) a server would give this transfer, built the way TransactionManager builds a
      * request. vanilla=true reads it with the patch bypassed. -1 when the private method can't be called.
      */
+    public static double batched() {
+        return Speed.batched;
+    }
+
+    public static double bulkSize() {
+        return Speed.bulkSize();
+    }
+
+    /**
+     * The duration (ms) a server would give this transfer, built the way TransactionManager builds a
+     * request. vanilla=true reads it with the patch bypassed. -1 when the private method can't be called.
+     */
     public static double serverDuration(Object player, Object item, Object source, Object destination, boolean vanilla) {
+        List<Object> items = new ArrayList<>();
+        items.add(item);
+        return serverDurationList(player, items, source, destination, vanilla ? 1 : 0);
+    }
+
+    /**
+     * Same for several items in one transaction (a batch). items: a java.util.List of InventoryItem
+     * (ArrayList.new() in Lua). mode 0 = patched (sum / multiplier), 1 = vanilla (slowest item,
+     * undivided), 2 = sum undivided.
+     */
+    public static double serverDurationList(Object player, Object items, Object source, Object destination, int mode) {
         ItemTransactionPacket t = new ItemTransactionPacket();
-        List<InventoryItem> items = new ArrayList<>();
-        items.add((InventoryItem) item);
-        t.set((IsoPlayer) player, items, (ItemContainer) source, (ItemContainer) destination, null, IsoDirections.N, 0.0F, 0.0F, 0.0F);
-        boolean was = Speed.bypass;
-        Speed.bypass = vanilla;
+        List<InventoryItem> list = new ArrayList<>();
+        for (Object o : (List<?>) items) {
+            list.add((InventoryItem) o);
+        }
+        boolean wasBypass = Speed.bypass;
+        boolean wasNoDivide = Speed.noDivide;
+        Speed.bypass = mode == 1;
+        Speed.noDivide = mode == 2;
         try {
+            t.set((IsoPlayer) player, list, (ItemContainer) source, (ItemContainer) destination, null, IsoDirections.N, 0.0F, 0.0F, 0.0F);
             Method m = Transaction.class.getDeclaredMethod("getDuration");
             m.setAccessible(true);
             return ((Float) m.invoke(t)).doubleValue();
@@ -42,7 +69,8 @@ public class LuaApi {
             System.out.println("[ActionSpeedMultiplier] serverDuration failed: " + e);
             return -1.0;
         } finally {
-            Speed.bypass = was;
+            Speed.bypass = wasBypass;
+            Speed.noDivide = wasNoDivide;
         }
     }
 }

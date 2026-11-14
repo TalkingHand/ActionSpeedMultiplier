@@ -8,7 +8,7 @@ Project Zomboid Build 42 mod. Timed actions and item transfers take the vanilla 
 |---|---|---|---|
 | **Action speed** (`ActionSpeedMultiplier.ActionSpeed`) | 0.1 - 100 | 20 | every timed action except item transfers: crafting, building, eating, reading, repairing, farming, animals... |
 | **Item transfer speed** (`ActionSpeedMultiplier.TransferSpeed`) | 0.1 - 100 | 20 | moving items between containers, bags, vehicles and the floor, and picking items up from the ground |
-| **Items moved per step** (`ActionSpeedMultiplier.BulkTransferSize`) | 0 - 1000 | 20 | single player: items queued from one container to another (or picked up from the ground) move this many at a time; a step takes its items' times added up, so the total is the vanilla total divided by the transfer speed, without the pause between items (100 items at 20: 5 steps of 20). 0 or 1 = vanilla |
+| **Items moved per step** (`ActionSpeedMultiplier.BulkTransferSize`) | 0 - 1000 | 20 | items queued from one container to another move this many at a time, in single player and on servers (picking up from the ground: single player); a step takes its items' times added up, so the total is the vanilla total divided by the transfer speed, without the pause between items (100 items at 20: 5 steps of 20). 0 or 1 = vanilla |
 
 The time is the vanilla time divided by the option: 2 is twice as fast, 1 is vanilla, 0.5 twice as slow. Vanilla modifiers (traits, moodles, wounded hands, gloves, weight, bag fullness) still count before the division.
 
@@ -17,6 +17,7 @@ The time is the vanilla time divided by the option: 2 is twice as fast, 1 is van
 - **Actions:** every timed action's time goes through `ISBaseTimedAction:adjustMaxTime`, on the client and in single player (`create`) and on the server (`NetTimedAction.getDuration` calls `adjustMaxTime(getDuration())`). The mod divides there, so client and server agree. Actions that do part of their work on their own clock (`timePerLiter`, `timePerEgg`, `timePerDirt`, `timePerUse`: milking, shearing, eggs, cleaning hutches, watering) get those clocks divided too.
 - **Item transfers on servers:** the server times them in Java (`zombie.core.Transaction.getDuration`) and the client only waits, so Lua cannot change them. The mod patches that method with ZombieBuddy.
 - **Item transfers in single player:** `ISInventoryTransferAction:new` and `ISGrabItemAction:new` are wrapped. For several items, `update` regroups the queue into batches of `BulkTransferSize` items timed by the sum of their times, so `perform` moves a batch at once (still item by item checking room, stopping when the destination is full, as vanilla).
+- **Batches on servers (1.2.0):** the client sends one server transaction per queue entry, so `checkQueueList` is wrapped to regroup the queue into batches right before each one is sent; the next batch is cut where the destination would be full or over the server's item limit, because the server checks room for each item alone. Vanilla times a transaction by its slowest item; the Java patch times a batch by its items added up (light items of one type still count once per 20, as vanilla bundles them), so batches are not faster than the transfer speed. Floor pickups (`ISGrabItemAction`) stay one transaction per item on servers.
 
 ## Requirements
 
@@ -31,14 +32,14 @@ The time is the vanilla time divided by the option: 2 is twice as fast, 1 is van
 
 ## Compatibility
 
-- Build 42.21. Tested in single player; multiplayer is not tested.
+- Build 42.22.2. Tested in single player (97 checks, including the multiplayer batch pieces called directly); multiplayer on a real server is not tested. Batches on servers need 1.2.0 on the server too (with ZombieBuddy); an older server times a batch by its slowest item.
 - Marked incompatible with TwisTonFire Faster Actions: both divide action times, so together they would multiply.
 - Other mods' timed actions are divided too when they go through `adjustMaxTime` (the normal way). An action that runs its own clock under another field name than `timePer...` may end before its work is done.
 - Can be added to or removed from an existing save; it changes no saved data.
 
 ## Test
 
-`pzt live` (PZTestHarness) runs `tests/ActionSpeedMultiplier_Test.lua` in single player: transfer and grab times, the patched server transfer duration (`Transaction.getDuration` called directly), batches (15 apples and 15 different items moved, 15 different floor items grabbed, item by item vs in one batch: the batch takes the exact sum of item times and they arrive together), `adjustMaxTime` for actions and their own clocks, and real timed runs of a transfer and of an action.
+`pzt live` (PZTestHarness) runs `tests/ActionSpeedMultiplier_Test.lua` in single player: transfer and grab times, the patched server transfer duration (`Transaction.getDuration` called directly, one item and batches: sum, light bundles, size 1), the multiplayer queue regrouping (`foldQueueMP`: batch sizes, -1 times, first batch cut by bag room), batches (15 apples and 15 different items moved, 15 different floor items grabbed, item by item vs in one batch: the batch takes the exact sum of item times and they arrive together), `adjustMaxTime` for actions and their own clocks, and real timed runs of a transfer and of an action.
 
 ## Support
 
