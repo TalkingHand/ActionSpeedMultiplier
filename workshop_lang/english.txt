@@ -1,0 +1,46 @@
+Action Speed Multiplier makes timed actions and item transfers faster, in single player and on multiplayer servers. In multiplayer the server decides how long each item transfer takes and the client only waits, so Lua-only speed mods cannot shorten transfers there. This mod patches the server's own transfer timing in Java, through ZombieBuddy.
+
+[b]Every time is the vanilla time divided by a sandbox option. By default, actions and item transfers are 20 times as fast.[/b]
+
+[h2]Features[/h2]
+[list]
+[*][b]Actions:[/b] crafting, building, eating, reading, repairing, farming, animals and every other timed action except moving items.
+[*][b]Item transfers:[/b] moving items between containers, bags, vehicles and the floor, and picking items up from the ground. One item or many, every transfer is faster.
+[*][b]Moving in steps:[/b] several items moved from one container to another go in steps of up to 20 items. A step takes as long as its items together, so the total time stays the same; only the pause between items goes away.
+[*][b]Vanilla modifiers kept:[/b] traits, moodles, wounded hands, gloves, weight and bag fullness count as in vanilla, before the division.
+[/list]
+
+[h2]Sandbox options[/h2]
+The options are on the [b]Action Speed Multiplier[/b] page. Set them when you start a new game, or in the server's sandbox settings.
+[table]
+[tr][th]Option[/th][th]Default[/th][th]Description[/th][/tr]
+[tr][td]Action speed[/td][td]20[/td][td]0.1 to 100. Divides the time of every timed action except item transfers. 2 is twice as fast, 1 is vanilla, 0.5 is twice as slow.[/td][/tr]
+[tr][td]Item transfer speed[/td][td]20[/td][td]0.1 to 100. Divides the time of item transfers and of picking items up from the ground.[/td][/tr]
+[tr][td]Items moved per step[/td][td]20[/td][td]How many items move in one step. 0 or 1 moves them one by one, as in vanilla.[/td][/tr]
+[/table]
+
+[h2]Requirements[/h2]
+[list]
+[*][b]ZombieBuddy[/b] (Java mod loader), enabled in the mod list.
+[*]Steam launch option [b]-agentlib:zbNative --[/b] (Project Zomboid → Properties → General → Launch Options). Without it the mod does not load.
+[*]On the first start, ZombieBuddy asks once to approve [i]ActionSpeedMultiplier.jar[/i].
+[/list]
+
+[h2]Limits[/h2]
+[list]
+[*]On servers, picking items up from the ground still goes one item at a time (each one faster). Steps are used for moves between containers.
+[*]On servers, a step ends where the destination would be full, because the server checks room for each item on its own.
+[*]Tested in single player. Multiplayer is not tested.
+[/list]
+
+[h2]Compatibility[/h2]
+[list]
+[*]Multiplayer: the server needs ZombieBuddy (with its Java agent) and this mod, 1.2.0 or newer for steps. Every client needs them too.
+[*]Marked incompatible with Faster Actions: both divide action times, so together they would multiply.
+[*]Timed actions from other mods are sped up too when they use the normal vanilla timing.
+[*]Can be added to or removed from an existing save. An existing save starts with the default values.
+[/list]
+
+Source: https://github.com/TalkingHand/ActionSpeedMultiplier
+
+[url=https://ko-fi.com/talkinghands2285][img]https://raw.githubusercontent.com/TalkingHand/ActionSpeedMultiplier/main/art/kofi_button.png[/img][/url]

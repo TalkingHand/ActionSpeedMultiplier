@@ -1,0 +1,46 @@
+Action Speed Multiplier 可以加快限时动作和物品转移，单人游戏和多人服务器均适用。在多人游戏中，每次物品转移的耗时由服务器决定，客户端只能等待，因此纯 Lua 的加速模组无法缩短转移时间。本模组通过 ZombieBuddy 用 Java 修改服务器自身的转移计时。
+
+[b]所有耗时均为原版耗时除以沙盒选项的值。默认情况下，动作和物品转移都快 20 倍。[/b]
+
+[h2]功能[/h2]
+[list]
+[*][b]动作：[/b]制作、建造、进食、阅读、修理、耕种、动物相关动作，以及除物品转移外的所有其他限时动作。
+[*][b]物品转移：[/b]在容器、背包、载具和地面之间移动物品，以及从地上捡起物品。无论一件还是多件，所有转移都会变快。
+[*][b]分批转移：[/b]从一个容器向另一个容器转移多件物品时，每批最多 20 件。每批的耗时等于其中物品耗时之和，因此总时间不变，只是去掉了物品之间的停顿。
+[*][b]保留原版修正：[/b]特质、状态、手部受伤、手套、重量和背包装满程度仍按原版计算，之后再做除法。
+[/list]
+
+[h2]沙盒选项[/h2]
+选项位于 [b]Action Speed Multiplier[/b] 页面，可在开始新游戏时或在服务器的沙盒设置中调整。本模组的选项在游戏中以英文显示。
+[table]
+[tr][th]选项[/th][th]默认值[/th][th]说明[/th][/tr]
+[tr][td]Action speed[/td][td]20[/td][td]0.1 至 100。除物品转移外，所有限时动作的耗时都除以此值。2 为快两倍，1 为原版，0.5 为慢两倍。[/td][/tr]
+[tr][td]Item transfer speed[/td][td]20[/td][td]0.1 至 100。物品转移和从地上捡起物品的耗时除以此值。[/td][/tr]
+[tr][td]Items moved per step[/td][td]20[/td][td]每批转移的物品数量。设为 0 或 1 时与原版一样逐件转移。[/td][/tr]
+[/table]
+
+[h2]前置要求[/h2]
+[list]
+[*][b]ZombieBuddy[/b]（Java 模组加载器），需在模组列表中启用。
+[*]Steam 启动选项 [b]-agentlib:zbNative --[/b]（Project Zomboid → 属性 → 通用 → 启动选项）。未设置时本模组不会加载。
+[*]首次启动时，ZombieBuddy 会询问一次是否批准 [i]ActionSpeedMultiplier.jar[/i]。
+[/list]
+
+[h2]限制[/h2]
+[list]
+[*]在服务器上，从地上捡起物品仍然逐件进行（每件都会变快）。分批转移只用于容器之间的转移。
+[*]服务器会单独检查每件物品的空间，因此在服务器上，一批物品会在目标容器将满处截断。
+[*]已在单人游戏中测试，尚未在多人游戏中测试。
+[/list]
+
+[h2]兼容性[/h2]
+[list]
+[*]多人游戏：服务器需要 ZombieBuddy（含其 Java 代理）和本模组，分批转移需要 1.2.0 或更高版本。每个客户端也都需要这两者。
+[*]已标记与 Faster Actions 不兼容：两者都会缩短动作耗时，同时使用会叠加相乘。
+[*]其他模组的限时动作如果使用原版的常规计时，也会一同加快。
+[*]可以添加到现有存档或从中移除。添加到现有存档时使用默认值。
+[/list]
+
+Source: https://github.com/TalkingHand/ActionSpeedMultiplier
+
+[url=https://ko-fi.com/talkinghands2285][img]https://raw.githubusercontent.com/TalkingHand/ActionSpeedMultiplier/main/art/kofi_button.png[/img][/url]
