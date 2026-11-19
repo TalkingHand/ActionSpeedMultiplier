@@ -1,5 +1,5 @@
 # ActionSpeedMultiplier: vanilla dependencies (format: _guide/README.md "9. 게임 업데이트 대응")
-# checked: 42.22.2 (1.2.0: pzt 2026-11-15 single player, one client, 97 PASS incl. mpFold and mpServerTimes; multiplayer batches on a real server not tested)
+# checked: 42.22.2 (1.2.0: pzt 2026-11-15 single player, one client, 97 PASS incl. mpFold and mpServerTimes; 1.2.1: pzt 2026-11-20 single player, changed scenarios, 48 PASS incl. ISHutchGrabEgg at 1x/20x/100x; ISMilkAnimal, ISGiveWaterToAnimal, ISAddWaterToTrough not run in game; multiplayer not tested)
 #
 # Java: java/src/main/java/talkinghand/actionspeedmultiplier (Patches.java, Speed.java, LuaApi.java).
 #
@@ -8,7 +8,7 @@
 #  2. Multiplayer transfers: the server must keep timing them with Transaction.getDuration; a new timing path would be vanilla speed again
 #  2b. Multiplayer batches: the client must keep sending one transaction per queueList[1] right after checkQueueList (start, perform); Transaction must keep the fields entries/player and TransactionEntry.itemId/sourceId (reflection; batches fall back to the slowest item if they go)
 #  3. Single-player transfers: ISInventoryTransferAction.new must keep setting maxTime and queueList[1].time; ISGrabItemAction.new must keep taking time as its third argument
-#  4. Actions with their own clocks must keep naming them timePer*
+#  4. Actions with their own clocks must keep naming them timePer*; on servers their serverStart must keep reading the clock after setTimeData (adjustMaxTime)
 #
 # kind	target	note
 
@@ -21,11 +21,16 @@ assume	The server calls Transaction.getDuration only to set endTime (constructor
 assume	The MP client takes the server's transfer duration (getItemTransactionDuration) instead of its own maxTime	client/TimedActions/ISInventoryTransferAction.lua:168 (maxTime -1 in new, :854), ISGrabItemAction.lua:41 (-1 in new, :197)
 java-call	ItemTransactionPacket(), Transaction.set(IsoPlayer, List, ItemContainer, ItemContainer, String, IsoDirections, float, float, float)	LuaApi.serverDuration (tests only)
 java-call	SandboxOptions.instance.getOptionByName, DoubleSandboxOption.getValue	Speed.multiplier; falls back to 20.0 if the option is missing
-lua-wrap	ISBaseTimedAction:adjustMaxTime	shared/TimedActions/ISBaseTimedAction.lua:99; calls the original, divides results > 1 by ActionSpeed (not below 1), skips ISInventoryTransferAction and ISGrabItemAction by Type; installed at file load (shared, also on the server). No vanilla subclass overrides it (42.21)
+lua-wrap	ISBaseTimedAction:adjustMaxTime	shared/TimedActions/ISBaseTimedAction.lua:99; calls the original, divides results > 1 by ActionSpeed (not below 1), for results < 0 (-1) only scales the timePer* clocks, skips ISInventoryTransferAction and ISGrabItemAction by Type; installed at file load (shared, also on the server). No vanilla subclass overrides it (42.21)
 assume	The server times NetTimedActions as adjustMaxTime(getDuration()) * 20	zombie.core.NetTimedAction.getDuration / getAdjustedDuration (GameServer only)
 assume	ISEquipWeaponAction, ISUnequipAction, ISAttachItemHotbar, ISDetachItemHotbar compute animSpeed = maxTime / adjustMaxTime(maxTime)	so their animations play ActionSpeed times faster, matching the shorter time
 lua-wrap	ISWashClothing:getDuration	shared/TimedActions/ISWashClothing.lua:215 returns adjustMaxTime(maxTime) and create adjusts again (vanilla adjusts twice); the wrapper keeps the inner call undivided. Installed at file load and OnGameStart/OnServerStarted
 assume	Actions doing work on their own clock name it timePer* (timePerUse, timePerLiter, timePerEgg, timePerDirt) and set it in new, before adjustMaxTime	ISAddWaterToTrough, ISGatherBloodFromAnimal, ISGiveWaterToAnimal, ISHutchCleanFloor, ISHutchCleanNest, ISHutchGrabEgg, ISMilkAnimal, ISShearAnimal; divided once per action object
+assume	adjustMaxTime(-1) (no fixed time) still scales the timePer* clocks; on a server NetTimedAction.start calls setTimeData (getDuration -> adjustMaxTime) before serverStart, and serverStart sets emulateAnimEvent's period to timePer* * 20 ms	zombie.core.NetTimedAction.start/getDuration/getAdjustedDuration, zombie.core.Action.setTimeData (42.22.2). getDuration returns -1 on a server in ISHutchGrabEgg.lua:70, ISGiveWaterToAnimal.lua:103, ISAddWaterToTrough.lua:134; ISMilkAnimal.lua:245 always. Before 1.2.1 these clocks stayed vanilla on servers (one egg per 800 ms) and milking stayed vanilla everywhere
+assume	A NetTimedAction's new must keep named parameters: NetTimedAction.set sends new's prototype locvars as actionArgs and the server calls new with them	so ISHutchGrabEgg.new (and any NetTimedAction's new) is never wrapped with a vararg function
+lua-wrap	ISHutchGrabEgg:update	shared/TimedActions/Animals/ISHutchGrabEgg.lua:14; single player, clocks scaled: records the egg count on the first call, calls the original (one egg per step, lastTimer = floor(timer / timePerEgg)), then takes the other eggs that came due in the same tick. Installed at file load and OnGameStart/OnServerStarted
+lua-wrap	ISHutchGrabEgg:perform	shared/TimedActions/Animals/ISHutchGrabEgg.lua:40; single player, clocks scaled: takes the eggs counted at the first update that lastTimer has not reached yet (vanilla's 5-tick slack for the last egg is under one tick once divided), then the original
+assume	One egg = nestbox:removeEgg(0), addXp(character, Perks.Husbandry, 1), character inventory AddItem(egg); IsoHutch$NestBox.getEggsNb/removeEgg(int)	copied from ISHutchGrabEgg:update (:21-23) for the extra eggs; isValid stops the action when the box is empty
 assume	ISReadABook reads pages by jobDelta, not by its own clock	shared/TimedActions/ISReadABook.lua:28; pageTimer (200) only times the "can't learn" message
 lua-wrap	ISInventoryTransferAction:new	client/TimedActions/ISInventoryTransferAction.lua:764; calls the original, then divides maxTime by TransferSpeed (skips MP clients, 0 and 1)
 lua-wrap	ISGrabItemAction:new	client/TimedActions/ISGrabItemAction.lua:182; divides the time argument before the original, because new copies it into a queue entry (checkQueueList, possibly an earlier grab's queue)
@@ -39,7 +44,7 @@ assume	checkQueueList may be called more than once and only merges mergeable act
 assume	The game keeps an action's time as an int (BaseAction.maxTime, LuaTimedActionNew.setTime(int)): a fractional maxTime runs truncated	so item by item a 4.8-tick item runs as 4; batches add exact times (kept per item before the 1-tick floor) and lose under 1 tick per batch
 assume	action:setTime during update changes the remaining time without resetting progress	vanilla does it in update for MP (getItemTransactionDuration)
 sandbox	ActionSpeedMultiplier.BulkTransferSize	own option, integer 0-1000, default 20, 0/1 = vanilla; single player (Lua times) and multiplayer (client regroups, server Java sums). Java reads SandboxOptions (IntegerSandboxOption)
-lua-file	TimedActions/ISBaseTimedAction, TimedActions/ISInventoryTransferAction, TimedActions/ISGrabItemAction, TimedActions/ISWashClothing	required before wrapping
+lua-file	TimedActions/ISBaseTimedAction, TimedActions/ISInventoryTransferAction, TimedActions/ISGrabItemAction, TimedActions/ISWashClothing, TimedActions/Animals/ISHutchGrabEgg	required before wrapping
 assume	checkQueueList copies each merged transfer action's maxTime into queueList entries	ISInventoryTransferAction.lua:739; merged actions were built by the wrapped new, so they are already divided
 assume	maxTime 0 means instant (favourites, TradeUI), 1 means the debug "timed action instant", -1 means endless/server-timed	left alone
 sandbox	ActionSpeedMultiplier.ActionSpeed	own option, double 0.1-100, default 20.0; Lua reads SandboxVars

@@ -638,6 +638,197 @@ function T.mpServerTimes()
 	setMultiplier(20)
 end
 
+-- Grabbing eggs from a hutch (ISHutchGrabEgg, 1.2.1). A real hen hutch is built 3 squares from the player
+-- (IsoHutch.new with HutchDefinitions "hutchhen", as ISHutch:create) and its first nest box filled with
+-- eggs; if that fails, a stub nest box (a Lua table) and the floor object stand in, and the run says so.
+-- Server path (no server here): adjustMaxTime(-1) must scale timePerEgg, and serverStart's
+-- emulateAnimEvent period (captured by swapping the global for the call) must be 800 ms / ActionSpeed.
+local EGG = "Base.Egg"
+
+local function protect(on)
+	local p = getPlayer()
+	p:setGodMod(on)
+	p:setInvisible(on)
+	p:setZombiesDontAttack(on)
+	if p.setGhostMode then p:setGhostMode(on) end
+end
+
+local function invEggs()
+	return getPlayer():getInventory():getItemsFromFullType(EGG):size()
+end
+
+local function clearInvEggs()
+	local inv = getPlayer():getInventory()
+	local list = inv:getItemsFromFullType(EGG)
+	for i = list:size() - 1, 0, -1 do inv:Remove(list:get(i)) end
+end
+
+local function stubNest()
+	local nest = { eggs = {} }
+	function nest:getEggsNb() return #self.eggs end
+	function nest:removeEgg(i) return table.remove(self.eggs, (i or 0) + 1) end
+	function nest:addEgg(e) self.eggs[#self.eggs + 1] = e end
+	return nest
+end
+
+local function eggHutch()
+	if T.hutch and T.nest then return T.hutch, T.nest end
+	local player = getPlayer()
+	local ok, hutch = pcall(function()
+		local sq = getCell():getGridSquare(math.floor(player:getX()) + 3, math.floor(player:getY()) + 3, math.floor(player:getZ()))
+		if not sq or not HutchDefinitions or not HutchDefinitions.hutchs["hutchhen"] then return nil end
+		local def = HutchDefinitions.hutchs["hutchhen"]
+		return IsoHutch.new(sq, false, def.baseSprite, def, nil)
+	end)
+	local nest = ok and hutch and hutch:getNestBox(0)
+	if nest then
+		T.realHutch = true
+		T.hutch, T.nest = hutch, nest
+	else
+		log("real hutch not built (" .. tostring(hutch) .. "), using a stub nest box")
+		T.realHutch = false
+		T.hutch, T.nest = player:getCurrentSquare():getFloor(), stubNest()
+	end
+	return T.hutch, T.nest
+end
+
+local function fillNest(nest, n)
+	while nest:getEggsNb() > 0 do nest:removeEgg(0) end
+	for _ = 1, n do nest:addEgg(instanceItem(EGG)) end
+	return nest:getEggsNb()
+end
+
+-- the period serverStart would give emulateAnimEvent (ms), or nil
+local function serverPeriod(a)
+	local saved = emulateAnimEvent
+	local period
+	emulateAnimEvent = function(_, p) period = p end
+	local ok, err = pcall(a.serverStart, a)
+	emulateAnimEvent = saved
+	if not ok then log("serverStart failed", err) end
+	return period
+end
+
+function T.eggUnit()
+	protect(true)
+	local player = getPlayer()
+	check("ISHutchGrabEgg wrapped", ISHutchGrabEgg ~= nil and ISHutchGrabEgg._ASM_wrapped == true)
+	check("timed actions not instant (debug cheat off)", not player:isTimedActionInstant())
+	local hutch, nest = eggHutch()
+	check("real hen hutch built", T.realHutch == true, tostring(hutch))
+	check("nest box filled with 10 eggs", fillNest(nest, 10) == 10, nest:getEggsNb())
+
+	-- single player: maxTime and the egg clock divided together
+	setActionMultiplier(1)
+	local v = ISHutchGrabEgg:new(player, nest, hutch)
+	near("vanilla getDuration = 10 eggs * 40 + 5", v.maxTime, 405)
+	local vt = v:adjustMaxTime(v.maxTime)
+	near("m=1: timePerEgg stays 40", v.timePerEgg, 40)
+	setActionMultiplier(20)
+	local a = ISHutchGrabEgg:new(player, nest, hutch)
+	local at = a:adjustMaxTime(a.maxTime)
+	log("egg action time m=1", vt, "m=20", at)
+	near("m=20: time / 20", at, vt / 20)
+	near("m=20: timePerEgg 2", a.timePerEgg, 2)
+
+	-- server: getDuration returns -1, NetTimedAction.start calls adjustMaxTime(-1), then serverStart
+	setActionMultiplier(1)
+	local s1 = ISHutchGrabEgg:new(player, nest, hutch)
+	check("m=1: adjustMaxTime(-1) stays -1", s1:adjustMaxTime(-1) == -1)
+	near("m=1: server period 800 ms (vanilla)", serverPeriod(s1), 800)
+	setActionMultiplier(20)
+	local s20 = ISHutchGrabEgg:new(player, nest, hutch)
+	check("m=20: adjustMaxTime(-1) stays -1", s20:adjustMaxTime(-1) == -1)
+	near("m=20: timePerEgg 2 after adjustMaxTime(-1)", s20.timePerEgg, 2)
+	near("m=20: server period 40 ms", serverPeriod(s20), 40)
+	s20:adjustMaxTime(-1)
+	near("m=20: server clock divided only once", s20.timePerEgg, 2)
+
+	-- other -1 actions with their own clock (ISMilkAnimal everywhere, watering on servers)
+	local milk = TestAction:new(player, -1)
+	milk.timePerLiter = 40
+	check("-1 action keeps -1", milk:adjustMaxTime(-1) == -1)
+	near("-1 action: timePerLiter divided", milk.timePerLiter, 2)
+	local zero = TestAction:new(player, 0)
+	zero.timePerLiter = 40
+	zero:adjustMaxTime(0)
+	near("0 (instant) action: clock untouched", zero.timePerLiter, 40)
+	fillNest(nest, 0)
+	clearInvEggs()
+end
+
+-- a real queued egg grab: n eggs at ActionSpeed m, timed until the last egg is in the inventory
+function T.eggStart(m, n)
+	protect(true)
+	local player = getPlayer()
+	local hutch, nest = eggHutch()
+	clearInvEggs()
+	fillNest(nest, n)
+	setActionMultiplier(m)
+	T.eggRuns = T.eggRuns or {}
+	local run = { m = m, n = n, start = getTimestampMs() }
+	T.eggRuns[m] = run
+	local a = ISHutchGrabEgg:new(player, nest, hutch)
+	run.action = a
+	ISTimedActionQueue.add(a)
+	T.eggWatch = function()
+		protect(true)
+		if not run.done and invEggs() >= n then run.done = getTimestampMs() end
+		local q = ISTimedActionQueue.getTimedActionQueue(player)
+		if not run.ended and (not q or not q.queue or #q.queue == 0) then run.ended = getTimestampMs() end
+	end
+	log("egg grab queued m=" .. m, "eggs", n, "maxTime", a.maxTime, "real hutch", tostring(T.realHutch))
+end
+
+function T.eggCheck(m)
+	T.eggWatch = nil
+	local run = T.eggRuns and T.eggRuns[m]
+	if not run then check("egg run m=" .. m .. " started", false) return end
+	local _, nest = eggHutch()
+	check("egg box empty m=" .. m, nest:getEggsNb() == 0, nest:getEggsNb())
+	check("all " .. run.n .. " eggs in the inventory m=" .. m, invEggs() == run.n, invEggs())
+	check("egg action ended m=" .. m, run.ended ~= nil)
+	if run.done then
+		run.ms = run.done - run.start
+		log("egg grab took ms m=" .. m, run.ms, "eggs", run.n, "action ended after ms", run.ended and (run.ended - run.start))
+	end
+	fillNest(nest, 0)
+	clearInvEggs()
+	setActionMultiplier(20)
+end
+
+function T.eggCompare()
+	local slow, fast = T.eggRuns and T.eggRuns[1], T.eggRuns and T.eggRuns[20]
+	if slow and fast and slow.ms and fast.ms then
+		local ratio = slow.ms / math.max(1, fast.ms)
+		log("egg real time ratio m=1 / m=20 (5 eggs each)", ratio)
+		check("eggs m=20 at least 8x faster in real time", ratio >= 8, ratio)
+	else
+		check("both egg runs finished", false)
+	end
+end
+
+function T.eggCleanup()
+	T.eggWatch = nil
+	if T.hutch and T.realHutch then
+		local ok, err = pcall(function() T.hutch:removeHutch() end)
+		check("test hutch removed", ok, tostring(err))
+	end
+	T.hutch, T.nest, T.realHutch = nil, nil, nil
+	clearInvEggs()
+	setActionMultiplier(20)
+	protect(false)
+	check("protection off", not getPlayer():isGodMod())
+end
+
+-- one OnTick handler at file level (a hot reload replaces it); the state lives in T.eggWatch
+Events.OnTick.Add(function()
+	if T.eggWatch then
+		local ok, err = pcall(T.eggWatch)
+		if not ok then log("egg watch failed", err); T.eggWatch = nil end
+	end
+end)
+
 function T.summary()
 	log("summary pass", T.pass, "fail", T.fail)
 end

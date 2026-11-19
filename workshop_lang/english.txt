@@ -5,6 +5,7 @@ Action Speed Multiplier makes timed actions and item transfers faster, in single
 [h2]Features[/h2]
 [list]
 [*][b]Actions:[/b] crafting, building, eating, reading, repairing, farming, animals and every other timed action except moving items.
+[*][b]Animals:[/b] taking eggs out of a hutch, milking, giving water to an animal and filling a trough are sped up too (1.2.1). These actions run until their work is done and do it on their own clock, which is divided as well, so at high speeds every egg is still taken.
 [*][b]Item transfers:[/b] moving items between containers, bags, vehicles and the floor, and picking items up from the ground. One item or many, every transfer is faster.
 [*][b]Moving in steps:[/b] several items moved from one container to another go in steps of up to 20 items. A step takes as long as its items together, so the total time stays the same; only the pause between items goes away.
 [*][b]Vanilla modifiers kept:[/b] traits, moodles, wounded hands, gloves, weight and bag fullness count as in vanilla, before the division.
@@ -30,12 +31,12 @@ The options are on the [b]Action Speed Multiplier[/b] page. Set them when you st
 [list]
 [*]On servers, picking items up from the ground still goes one item at a time (each one faster). Steps are used for moves between containers.
 [*]On servers, a step ends where the destination would be full, because the server checks room for each item on its own.
-[*]Tested in single player. Multiplayer is not tested.
+[*]Tested in single player, including hutch eggs at 1x, 20x and 100x. Milking and animal or trough water use the same fix but were not checked in game. Multiplayer is not tested.
 [/list]
 
 [h2]Compatibility[/h2]
 [list]
-[*]Multiplayer: the server needs ZombieBuddy (with its Java agent) and this mod, 1.2.0 or newer for steps. Every client needs them too.
+[*]Multiplayer: the server needs ZombieBuddy (with its Java agent) and this mod, 1.2.0 or newer for steps. Every client needs them too. On a server, eggs, milking and animal or trough water are timed by the server, so the server needs 1.2.1 for them to be faster (before 1.2.1 only the client's progress bar was fast). Not verified in multiplayer.
 [*]Marked incompatible with Faster Actions: both divide action times, so together they would multiply.
 [*]Timed actions from other mods are sped up too when they use the normal vanilla timing.
 [*]Can be added to or removed from an existing save. An existing save starts with the default values.
